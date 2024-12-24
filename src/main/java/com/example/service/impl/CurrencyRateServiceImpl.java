@@ -2,42 +2,43 @@ package com.example.service.impl;
 
 import com.example.entity.CryptoRates;
 import com.example.entity.FiatRates;
+import com.example.service.CryptoRateService;
 import com.example.service.CurrencyRateService;
+import com.example.service.FiatRateService;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatusCode;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class CurrencyRateServiceImpl implements CurrencyRateService {
+    private final FiatRateService fiatRateService;
+    private final CryptoRateService cryptoRateService;
 
-    private final WebClient webClient;
+    public Mono<Map<String, Object>> getAllCurrencyRates() {
+        log.info("Fetching all currency rates");
+        Mono<List<FiatRates>> fiatRates = this.fiatRateService.getFiatCurrencyRates();
+        Mono<List<CryptoRates>> cryptoRates = this.cryptoRateService.getCryptoCurrencyRates();
 
-    @Override
-    public Mono<List<FiatRates>> getFiatCurrencyRates() {
-        return webClient.get()
-                .uri("/fiat-currency-rates")
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, response -> Mono.error(new RuntimeException("Error fetching fiat currency rates")))
-                .bodyToFlux(FiatRates.class)
-                .doOnError(error -> System.out.println("Error: " + error.getMessage())) // Log error
-                .collectList();
+        return getMapMono(fiatRates, cryptoRates);
     }
 
-    @Override
-    public Mono<List<CryptoRates>> getCryptoCurrencyRates() {
-        return webClient.get()
-                .uri("/crypto-currency-rates")
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, response -> Mono.error(new RuntimeException("Error fetching crypto currency rates")))
-                .bodyToFlux(CryptoRates.class)
-                .doOnError(error -> System.out.println("Error: " + error.getMessage())) // Log error
-                .collectList();
+    @NotNull
+    public static Mono<Map<String, Object>> getMapMono(Mono<List<FiatRates>> fiatRates, Mono<List<CryptoRates>> cryptoRates) {
+        return Mono.zip(fiatRates, cryptoRates)
+                .map(tuple -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("fiatRates", tuple.getT1());
+                    response.put("cryptoRates", tuple.getT2());
+                    log.info("Successfully fetched currency rates");
+                    return response;
+                });
     }
 }
-

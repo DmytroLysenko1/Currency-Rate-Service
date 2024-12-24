@@ -1,22 +1,21 @@
 package com.example.controller;
 
-import com.example.entity.CryptoRates;
-import com.example.entity.FiatRates;
+
 import com.example.service.CurrencyRateService;
 import com.example.util.HttpStatusDescription;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
-
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+
+@Slf4j
 @RestController
 @RequestMapping("/currency-rates")
 @RequiredArgsConstructor
@@ -30,15 +29,9 @@ public class CurrencyRateController {
     })
     @GetMapping
     public Mono<Map<String, Object>> getAllCurrencyRates() {
-        Mono<List<FiatRates>> fiatRates = currencyRateService.getFiatCurrencyRates();
-        Mono<List<CryptoRates>> cryptoRates = currencyRateService.getCryptoCurrencyRates();
-
-        return Mono.zip(fiatRates, cryptoRates)
-                .map(tuple -> {
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("fiatRates", tuple.getT1());
-                    response.put("cryptoRates", tuple.getT2());
-                    return response;
-                });
+        log.info("Received request to get all currency rates");
+        return this.currencyRateService.getAllCurrencyRates()
+                .doOnSuccess(rates -> log.info("Successfully retrieved currency rates"))
+                .doOnError(error -> log.error("Error occurred while retrieving currency rates: {}", error.getMessage()));
     }
 }

@@ -1,20 +1,33 @@
 package com.example.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Getter
 @Setter
 @Table("fiat_rates")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
-public class FiatRates extends CurrencyRate {
+@ToString(callSuper = true)
+public class FiatRates {
+    @Id
+    @JsonIgnore
+    private Long id;
     private String currency;
     private BigDecimal rate;
+    @CreatedDate
+    @JsonIgnore
+    private LocalDateTime receivedAt;
 
     @Override
     public int hashCode() {
